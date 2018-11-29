@@ -1,0 +1,5 @@
+static/audio/music/01_Spell.ogg
+static/audio/music/02_Leafless_Quince_Tree.ogg
+static/audio/music/03_Straw_Fields.ogg
+static/audio/music/04_Yellow_Dust.ogg
+static/audio/music/05_Poppies.ogg
