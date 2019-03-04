@@ -9,8 +9,8 @@ Inspired by work done by Tyler Lyle, friend and Pygame consultant. See their
 work on GitHub: @lylet-AC.
 """
 import os
+import encoder
 
-# TODO: Color Pallette
 # Greyscale
 BLACK = (0, 0, 0)
 GREY = (128, 128, 128)
@@ -30,6 +30,7 @@ MUSIC_DIR = os.path.join(STATIC_DIR, "audio/music")
 FILE_DIR = os.path.join(STATIC_DIR, "file")
 FONT_DIR = os.path.join(STATIC_DIR, "font")
 IMG_DIR = os.path.join(STATIC_DIR, "img")
+DATA_DIR = os.path.join(IMG_DIR, "data")
 
 # TODO: General Game settings
 TITLE = "Caster 2D" # Window title
@@ -41,3 +42,4 @@ HEIGHT = 600
 
 
 # TODO: Neural-Network settings
+DATA_FILENAME = (encoder.string_gen(29) + "d.png")
