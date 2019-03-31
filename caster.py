@@ -108,7 +108,7 @@ class Core(object):
                 elif self.game_state == 1:
                     # Drawing point at coordinates, adjusted for offset of canvas
                     (adj_x, adj_y) = (event.pos[0]-200, event.pos[1]-100)
-                    pg.draw.circle(self.canvas, BLACK, (adj_x, adj_y), 5)
+                    pg.draw.circle(self.canvas, BLACK, (adj_x, adj_y), 10)
                     # Variable to enable continuous drawing
                     self.draw_on = True
         # Handling letting go of mouse button
@@ -120,8 +120,8 @@ class Core(object):
             (adj_x, adj_y) = (event.pos[0]-200, event.pos[1]-100)
             # If actively drawing, connect moving points with rounded line
             if self.draw_on:
-                pg.draw.circle(self.canvas, BLACK, (adj_x, adj_y), 5)
-                GameTools.roundline(self.canvas, BLACK, (adj_x, adj_y), self.last_pos,  5)
+                pg.draw.circle(self.canvas, BLACK, (adj_x, adj_y), 10)
+                GameTools.roundline(self.canvas, BLACK, (adj_x, adj_y), self.last_pos,  10)
             self.last_pos = (adj_x, adj_y)
         # USEREVENT+1 is a custom event for when the music ends
         elif event.type == (pg.USEREVENT + 1):
@@ -201,6 +201,12 @@ class Core(object):
             # If in the game
             if self.game_state == 1:
                 self.canvas.fill(WHITE)
+        # Handling user pressing the space key, used to submit canvas drawings
+        elif event.type == pg.KEYDOWN and event.key == pg.K_SPACE:
+            if self.game_state == 1:
+                # Send the canvas to the GameTools from util for prediction
+                GameTools.predict(self.canvas)
+                self.canvas.fill(WHITE)
 
     def render_overlay(self):
         song_title = self.song_list[self.song_list_head].rstrip("ggo.")
@@ -252,6 +258,7 @@ class Core(object):
                 self.screen.blit(background, (blit_x,blit_y))
         self.screen.blit(self.canvas, (200, 100))
         self.game_font.render_to(self.screen, (275, 515), "Press Tab to Clear", fgcolor=BLUEGREY, size=25)
+        self.game_font.render_to(self.screen, (195, 540), "Press Space to Submit Drawing", fgcolor=BLUEGREY, size=25)
 
     def run(self):
         while True:
