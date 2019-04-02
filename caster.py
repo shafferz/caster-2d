@@ -21,7 +21,9 @@ class Core(object):
     def __init__(self):
         pg.init()
         # Display game in fullscreen
-        self.screen = pg.display.set_mode((WIDTH, HEIGHT), pg.FULLSCREEN)
+        self.screen = pg.display.set_mode((WIDTH, HEIGHT))
+        # Boolean used to toggle fullscreen mode
+        self.is_fullscreen = False
         # Set game caption and game icon
         pg.display.set_caption(TITLE)
         pg.display.set_icon(pg.image.load(ICON))
@@ -55,6 +57,25 @@ class Core(object):
         self.canvas.fill(WHITE)
         self.draw_on = False
         self.last_pos = (0,0)
+        self.player = Player()
+        self.enemy = Player()
+        self.spell_crafter = SpellCrafter()
+        self.opponent_bot = SpellCrafter()
+        self.tutorialized = False
+        self.card_list = [
+            pg.image.load("src/static/img/tutorial_card1.png"),
+            pg.image.load("src/static/img/tutorial_card2.png"),
+            pg.image.load("src/static/img/tutorial_card3.png"),
+            pg.image.load("src/static/img/tutorial_card4.png"),
+            pg.image.load("src/static/img/tutorial_card5.png")
+        ]
+        self.card = 0
+        self.player_acted = False
+        self.enemy_acted = False
+        self.round = 1
+        self.player_turn = True
+        self.alive = True
+        self.won = False
 
     def dispatch(self, event):
         # If the game is quit via closing
@@ -75,7 +96,11 @@ class Core(object):
             elif self.game_state == 1:
                 self.canvas.fill(WHITE)
                 self.game_state = 0
-        # Handling pressing in
+            elif self.game_state == 2:
+                self.canvas.fill(WHITE)
+                self.game_substate = 0
+                self.game_state = 0
+        # Handling pressing in the mouse, for clicking buttons or drawing
         elif event.type == pg.MOUSEBUTTONDOWN:
             if not self.pause:
                 # Clicking in the main menu
@@ -100,6 +125,12 @@ class Core(object):
                             if self.tut_rect.collidepoint(pg.mouse.get_pos()):
                                 self.game_state = 1
                                 self.game_substate = 0
+                                self.won = False
+                                self.alive = True
+                                self.round = 1
+                                self.player_acted = False
+                                self.enemy_acted = False
+                                self.canvas.fill(WHITE)
                         # If the multiplayer rect exists
                         if self.multi_rect:
                             # If the click happened over the settings button area
@@ -108,20 +139,20 @@ class Core(object):
                 elif self.game_state == 1:
                     # Drawing point at coordinates, adjusted for offset of canvas
                     (adj_x, adj_y) = (event.pos[0]-200, event.pos[1]-100)
-                    pg.draw.circle(self.canvas, BLACK, (adj_x, adj_y), 10)
+                    pg.draw.circle(self.canvas, BLACK, (adj_x, adj_y), 25)
                     # Variable to enable continuous drawing
                     self.draw_on = True
-        # Handling letting go of mouse button
+        # Handling letting go of mouse button, indicates stop drawing
         elif event.type == pg.MOUSEBUTTONUP:
             self.draw_on = False
-        # Handling mouse moving events
+        # Handling mouse moving events, used to smooth the drawing strokes
         elif event.type == pg.MOUSEMOTION:
             # Adjust coordinates of mouse event for canvas location
             (adj_x, adj_y) = (event.pos[0]-200, event.pos[1]-100)
             # If actively drawing, connect moving points with rounded line
             if self.draw_on:
-                pg.draw.circle(self.canvas, BLACK, (adj_x, adj_y), 10)
-                GameTools.roundline(self.canvas, BLACK, (adj_x, adj_y), self.last_pos,  10)
+                pg.draw.circle(self.canvas, BLACK, (adj_x, adj_y), 25)
+                GameTools.roundline(self.canvas, BLACK, (adj_x, adj_y), self.last_pos,  25)
             self.last_pos = (adj_x, adj_y)
         # USEREVENT+1 is a custom event for when the music ends
         elif event.type == (pg.USEREVENT + 1):
@@ -205,19 +236,223 @@ class Core(object):
         elif event.type == pg.KEYDOWN and event.key == pg.K_SPACE:
             if self.game_state == 1:
                 # Send the canvas to the GameTools from util for prediction
-                GameTools.predict(self.canvas)
+                prediction = GameTools.predict(self.canvas)
+                self.spell_crafter.add_glyph(prediction)
                 self.canvas.fill(WHITE)
+        # Handling user pressing backspace, used to remove last added glyph
+        elif event.type == pg.KEYDOWN and event.key == pg.K_BACKSPACE:
+            if self.game_state == 1:
+                if not self.spell_crafter.is_empty():
+                    self.spell_crafter.remove_last_glyph()
+        # Handling user pressing enter, used for a lot of actions
+        elif event.type == pg.KEYDOWN and event.key == pg.K_RETURN:
+            # If in the game...
+            if self.game_state == 1:
+                # And if in tutorial mode...
+                if self.game_substate == 0:
+                    # If it is during the player's turn, cast the spell
+                    if self.card < 4 and self.tutorialized == False:
+                        self.card += 1
+                    else:
+                        self.tutorialized = True
+                    if self.player_turn:
+                        # If and only if the the spell is ready to cast
+                        if self.spell_crafter.spell_ready(self.player.mana):
+                            self.player_acted = True
+                            if self.player_acted and self.enemy_acted:
+                                self.calculate_result()
+                                self.round += 1
+                                self.player_acted = False
+                                self.enemy_acted = False
+                            self.player.eot()
+                            self.opponent_bot.random_cast(min(self.enemy.max_mana, 4))
+                    # If it is during the tutorial bot's turn, cast a random spell
+                    else:
+                        self.enemy_acted = True
+                        if self.player_acted and self.enemy_acted:
+                            self.calculate_result()
+                            self.round += 1
+                            self.player_acted = False
+                            self.enemy_acted = False
+                        self.enemy.eot()
+                    # Logic to figure out who would go next
+                    # If the round is odd, player gets first turn
+                    if (self.round % 2) == 1:
+                        # if player already went, enemy goes instead
+                        if not self.player_acted:
+                            self.player_turn = True
+                        else:
+                            self.player_turn = False
+                    # If the round is even, enemy gets first turn
+                    else:
+                        # If enemy already went, player goes instead
+                        if not self.enemy_acted:
+                            self.player_turn = False
+                        else:
+                            self.player_turn = True
+                    if self.player.hitpoints <= 0:
+                        self.game_state = 2
+                    if self.enemy.hitpoints <= 0:
+                        self.game_state = 2
+        elif event.type == pg.KEYDOWN and event.key == pg.K_f:
+            if self.is_fullscreen:
+                self.screen = pg.display.set_mode((WIDTH, HEIGHT))
+            else:
+                self.screen = pg.display.set_mode((WIDTH, HEIGHT), pg.FULLSCREEN)
+            self.is_fullscreen = not self.is_fullscreen
+        elif event.type == pg.KEYDOWN and event.key == pg.K_x:
+            self.game_state = 2
+            self.alive = False
+            self.won = False
+        elif event.type == pg.KEYDOWN and event.key == pg.K_w:
+            self.game_state = 2
+            self.won = True
+            self.alive = True
+
+    def calculate_result(self):
+        self.spell_crafter.craft_spell()
+        self.opponent_bot.craft_spell()
+        # Defence is the strength of a shield spell, used to reduce incoming
+        # spell attacks' damage. Booleans determine if advantage bonuses apply
+        p1_defense = 0
+        p2_defense = 0
+        p1_has_adv = False
+        p2_has_adv = False
+        # If the spell glyph is mana, increase the player(s) max mana only
+        if self.spell_crafter.spell_glyphs[0] == "mana":
+            self.player.max_mana += 1
+            self.player.mana = self.player.max_mana
+        if self.opponent_bot.spell_glyphs[0] == "mana":
+            self.enemy.max_mana += 1
+            self.enemy.mana = self.enemy.max_mana
+        # If the spell is a buff/debuff, find the buff index from dominant
+        # element value. Player 1's spell first
+        if self.spell_crafter.is_buff:
+            buff_index = self.spell_crafter.dominant_element[0]-5
+            # If on self, apply the buff and set the turn counter on the buff
+            # to 3.
+            if self.spell_crafter.on_self:
+                self.spell_crafter.buff[buff_index] = self.spell_crafter.strength
+                self.spell_crafter.buff_timer[buff_index] = 3
+            # If on player 2, it is a curse, similar
+            else:
+                self.opponent_bot.debuff[buff_index] = self.spell_crafter.strength
+                self.opponent_bot.debuff_timer[buff_index] = 3
+        # Player 2's spell if it is a buff
+        if self.opponent_bot.is_buff:
+            buff_index = self.opponent_bot.dominant_element[0]-5
+            # If on self, apply the buff and set the turn counter on the buff
+            # to 3.
+            if self.opponent_bot.on_self:
+                self.opponent_bot.buff[buff_index] = self.opponent_bot.strength
+                self.opponent_bot.buff_timer[buff_index] = 3
+            # If on player 1, it is a curse, similar
+            else:
+                self.spell_crafter.debuff[buff_index] = self.opponent_bot.strength
+                self.spell_crafter.debuff_timer[buff_index] = 3
+        # Next we handle defensive spells. Player 1's shield spell first
+        if not self.spell_crafter.is_buff and self.spell_crafter.on_self:
+            p1_defense = self.spell_crafter.strength
+        # Followed by Player 2's shield spell, if any
+        if not self.opponent_bot.is_buff and self.opponent_bot.on_self:
+            p2_defense = self.opponent_bot.strength
+        # Before calculating attack damage, we need to know if either spell
+        # has disadvantage. This means checking to see if any spell's element
+        # is weak to the other's. Check to see if p1's spell is dominant first
+        if (self.spell_crafter.dominant_element[0] == self.opponent_bot.dominant_element[0]-1 or (self.spell_crafter.dominant_element[0] == 5 and self.opponent_bot.dominant_element[0] == 1)):
+            p1_has_adv = True
+        # Then check if p2 has advantage
+        if (self.opponent_bot.dominant_element[0] == self.spell_crafter.dominant_element[0]-1 or (self.opponent_bot.dominant_element[0] == 5 and self.spell_crafter.dominant_element[0] == 1)):
+            p2_has_adv = True
+        # Finally, if either has adv, the other has disadvantage. This doesn't
+        # need calculated, as a modifier is applied to a spell with advantage.
+        # The last step is to calculate projectiles and their damage, if any
+        if not self.spell_crafter.is_buff and not self.spell_crafter.on_self:
+            # Increase p1 damage 50% if p1 has advantage
+            if p1_has_adv:
+                damage = math.floor(self.spell_crafter.strength * 1.5)
+            else:
+                damage = self.spell_crafter.strength
+            # Increase p2 shield strength 50% if p2 has advantage
+            if p2_has_adv:
+                damage -= math.floor(p2_defense * 1.5)
+            else:
+                damage -= p2_defense
+            # If the shield reduces damage below 0, change damage to 0
+            if damage < 0:
+                damage = 0
+            # Apply the damage, if any
+            self.enemy.hit(damage)
+        if not self.opponent_bot.is_buff and not self.opponent_bot.on_self:
+            # Increase p2 damage 50% if p1 has advantage
+            if p2_has_adv:
+                damage = math.floor(self.opponent_bot.strength * 1.5)
+            else:
+                damage = self.opponent_bot.strength
+            # Increase p1 shield strength 50% if p1 has advantage
+            if p1_has_adv:
+                damage -= math.floor(p1_defense * 1.5)
+            else:
+                damage -= p1_defense
+            # If the shield reduces damage below 0, change damage to 0
+            if damage < 0:
+                damage = 0
+            # Apply the damage, if any
+            self.player.hit(damage)
+        self.spell_crafter.restore_base_values()
+        self.opponent_bot.random_cast(min(self.enemy.max_mana, 4))
 
     def render_overlay(self):
+        # Overlay for the music player at the top of the screen
         song_title = self.song_list[self.song_list_head].rstrip("ggo.")
         song_title = song_title.rstrip("3pm.")
         song_title = song_title.lstrip("static/audio/music/")
         text = song_title
-        if not self.mute:
-            text += " (press M to mute)"
-        else:
-            text += " (press M to unmute)"
         self.game_font.render_to(self.screen, (5, 5), text, fgcolor=BLUEGREY, size=30)
+        if self.game_state == 0:
+            self.game_font.render_to(self.screen, (165, 570), "Press F to toggle fullscreen", fgcolor=BLUEGREY, size=30)
+        # Overlay specific to being in-game
+        if self.game_state == 1:
+            # Round number at the top
+            round_str = "Round: " + str(self.round)
+            self.game_font.render_to(self.screen, (330, 70), round_str, fgcolor=BLUEGREY, size=30)
+            # Player's turn overlay
+            if self.player_turn:
+                if not self.spell_crafter.spell_ready(self.player.mana):
+                    # Warn user that they need more glyphs (2 minimum)
+                    if len(self.spell_crafter.spell_glyphs) < 2:
+                        self.game_font.render_to(self.screen, (65, 570), "Need more glyphs!", fgcolor=RED, size=30)
+                    # Warn user that they need a casting glyph
+                    if not self.spell_crafter.has_casting():
+                        self.game_font.render_to(self.screen, (375, 570), "Missing casting glyph!", fgcolor=RED, size=30)
+                else:
+                    self.game_font.render_to(self.screen, (225, 570), "Ready to Cast! (Enter)", fgcolor=GREEN, size=30)
+                # Display the mana cost to the screen, turn red when too expensive, only on player's turn
+                if self.spell_crafter.cost <= self.player.mana:
+                    cost_str = ("Cost: " + str(self.spell_crafter.cost))
+                    self.game_font.render_to(self.screen, (605, 230), cost_str, fgcolor=BLUEGREY, size=25)
+                elif self.spell_crafter.cost > self.player.mana:
+                    cost_str = ("Cost: " + str(self.spell_crafter.cost))
+                    self.game_font.render_to(self.screen, (605, 230), cost_str, fgcolor=RED, size=25)
+            mana_str = "Mana: " + str(self.player.mana-self.spell_crafter.cost) + "/" + str(self.player.max_mana)
+            self.game_font.render_to(self.screen, (605, 255), mana_str, fgcolor=BLUE, size=25)
+            hp_str = "HP: " + str(self.player.hitpoints) + "/100"
+            self.game_font.render_to(self.screen, (605, 280), hp_str, fgcolor=RED, size=25)
+            ems = "Mana: " + str(self.enemy.mana-self.opponent_bot.cost) + "/" + str(self.enemy.max_mana)
+            self.game_font.render_to(self.screen, (605, 490), ems, fgcolor=BLUE, size=25)
+            ehs = "HP: " + str(self.enemy.hitpoints) + "/100"
+            self.game_font.render_to(self.screen, (605, 520), ehs, fgcolor=RED, size=25)
+            if self.game_substate == 0:
+                if not self.tutorialized:
+                    self.screen.blit(self.card_list[self.card], (0,0))
+        # Overlay specific to game over screen
+        if self.game_state == 2:
+            if self.alive == False:
+                self.game_font.render_to(self.screen, (20, 50), "You lose", fgcolor=RED, size=165)
+                self.game_font.render_to(self.screen, (220, 275), "Press ESC to continue", fgcolor=WHITE, size=30)
+            if self.won == True:
+                self.game_font.render_to(self.screen, (40, 50), "Victory!", fgcolor=BLUEGREY, size=165)
+                self.game_font.render_to(self.screen, (220, 275), "Press Esc to continue", fgcolor=BLACK, size=30)
 
     def render_main_menu(self):
         # Display game background
@@ -249,28 +484,71 @@ class Core(object):
             self.game_font.render_to(self.screen, (115, 350), "Multiplayer", fgcolor=GREY, size=90)
             self.multi_rect = pg.Rect(115, 350, 550, 90)
 
-    def render_game_screen(self):
+    def render_tutorial_game_screen(self):
+        # Render the background first
         background = pg.image.load("src/static/img/bg.png")
         for _x in range (0, 5):
             for _y in range (0, 4):
                 blit_x = _x*400
                 blit_y = _y*300
                 self.screen.blit(background, (blit_x,blit_y))
+        # Render glyph guide
+        glyph_img = pg.image.load("src/static/img/glyphs.png")
+        self.screen.blit(glyph_img, (0, 100))
+
+    def render_player_game_screen(self):
         self.screen.blit(self.canvas, (200, 100))
         self.game_font.render_to(self.screen, (275, 515), "Press Tab to Clear", fgcolor=BLUEGREY, size=25)
         self.game_font.render_to(self.screen, (195, 540), "Press Space to Submit Drawing", fgcolor=BLUEGREY, size=25)
+        self.game_font.render_to(self.screen, (670, 70), "You", fgcolor=BLUEGREY, size=30)
+        self.game_font.render_to(self.screen, (655, 460), "Enemy", fgcolor=BLUEGREY, size=30)
+        if self.spell_crafter.spell_glyphs:
+            glyph_list = []
+            for glyph in self.spell_crafter.spell_glyphs:
+                glyph_list.append(glyph)
+            for spacing, glyph in enumerate(glyph_list):
+                self.game_font.render_to(self.screen, (605, (100+(25*spacing))), glyph, fgcolor=BLUEGREY, size=25)
+
+    def render_enemy_game_screen(self):
+        self.game_font.render_to(self.screen, (265, 100), "This is the opponent's turn.", fgcolor=BLUEGREY, size=25)
+        self.game_font.render_to(self.screen, (200, 125), "The opponent's spell has the glyphs:", fgcolor=BLUEGREY, size=25)
+        if self.opponent_bot.spell_glyphs:
+            glyph_list = []
+            for glyph in self.opponent_bot.spell_glyphs:
+                glyph_list.append(glyph)
+            for spacing, glyph in enumerate(glyph_list):
+                self.game_font.render_to(self.screen, (380, (150+(25*spacing))), glyph, fgcolor=BLUEGREY, size=25)
+
+    def render_game_over(self):
+        if self.alive == False:
+            bad_bg = pg.image.load("src/static/img/stormy_background_800x600.png")
+            self.screen.blit(bad_bg, self.bg_rect)
+            self.game_font.render_to(self.screen, (200, 200), "GAME OVER", fgcolor=WHITE, size=75)
+        if self.won == True:
+            good_bg = pg.image.load("src/static/img/shining_background_800x600.png")
+            self.screen.blit(good_bg, self.bg_rect)
+            self.game_font.render_to(self.screen, (200, 200), "GAME OVER", fgcolor=BLACK, size=75)
 
     def run(self):
         while True:
             for event in pg.event.get():
                 self.dispatch(event)
-            if self.game_state == 0:
-                if not self.screen.get_locked():
-                    self.render_main_menu()
-                    self.render_overlay()
-            if self.game_state == 1:
-                if not self.screen.get_locked():
-                    self.render_game_screen()
+            if not self.screen.get_locked():
+                if self.game_state == 0:
+                        self.render_main_menu()
+                        self.render_overlay()
+                if self.game_state == 1:
+                    if self.game_substate == 0:
+                        # If the player is alive and has not won the game,
+                        # we render the game screens and overlay.
+                            self.render_tutorial_game_screen()
+                            if self.player_turn:
+                                self.render_player_game_screen()
+                            else:
+                                self.render_enemy_game_screen()
+                            self.render_overlay()
+                if self.game_state == 2:
+                    self.render_game_over()
                     self.render_overlay()
             pg.display.flip()
 
