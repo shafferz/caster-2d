@@ -6,9 +6,12 @@ This is the main game source code for the Caster 2D project while in
 development. The following project is the implementation portion of my Senior
 Thesis at Allegheny College.
 
-Special thanks to Tyler Lyle (@lylet-AC on GitHub) and GitHub user iKlsR for
-helping me re-format my game source code in a more Pythonic way. Without their
-expertises in pygame, this project could have been much more unweildy.
+Special thanks to Tyler Lyle (@lylet-AC on GitHub) and GitHub user @iKlsR for
+helping me re-format my game source code in a more Pythonic way. By reading
+their projects, I gained a better understanding of the object-oriented approach
+to PyGame, while maintaining a "pythonic" style of code writing.
+
+Honor Code: This work is mine unless otherwise cited.
 """
 import pygame as pg
 import os, sys

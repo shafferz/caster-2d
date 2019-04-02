@@ -5,7 +5,7 @@ This program creates and trains a Keras model on the MNIST hand-drawn digits
 dataset. The model created by this program will be used as the model for
 Caster while in development, prior to proper data acquisition.
 
-Honor Code; This work is mine unless otherwise cited. I have used several
+Honor Code: This work is mine unless otherwise cited. I have used several
 Keras tutorials to attempt to isolate the best values used for the layers.
 Most tutorials were found on either GitHub repositories or various blogs.
 """

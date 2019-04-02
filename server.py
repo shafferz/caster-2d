@@ -1,3 +1,14 @@
+"""
+Author: Zachary Shaffer
+GitHub: @shafferz
+
+The bare bones of a server in PodSixNet. This server runs, but has no
+implemented functions for listening for or connecting to Clients, yet.
+
+Honor Code: This work is mine unless otherwise cited. This code was created
+with the examples in the source code for PodSixNet:
+https://github.com/chr15m/PodSixNet
+"""
 import PodSixNet.Channel
 import PodSixNet.Server
 

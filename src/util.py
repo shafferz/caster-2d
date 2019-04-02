@@ -1,3 +1,63 @@
+"""
+Author: Zachary Shaffer
+GitHub: @shafferz
+
+This program, util.py, creates a module, GameTools, and two objects,
+SpellCrafter and Player. util.py was designed as a supplemental set of utility
+tools that augment the game's mechanics, without necessarily belonging in
+caster.py for organizational and readability reasons.
+
+GameTools is a module with two miscellaneous functions that did not quite belong
+with the code in caster.py. The roundline function is a cosmetic supplement,
+and, even though the model prediction is a core component of the game
+mechanics, I wanted to keep the Keras models external relative to caster.py
+to ensure smooth interfacing between the libraries.
+
+The SpellCrafter object contains the state of a player's spell as it is
+constructed. This was not included in the main body of code because it serves
+as the base for spells cast by both the player and the computer. As such, it
+was easier to implement as an independent object with a self-contained state.
+The object contains no logic relevant to the game mechanics in caster.py, it
+only contains logic relevant to managing spell glyphs and their associated
+functions.
+
+The Player object was and will kept separate from caster.py, as it is likely
+that the Player object will serve as the Client for player to connect to the
+server, if my understanding of the PodSixNet interface is correct. If the Client
+object turns out to be separate from the Player object, this object may be moved
+into caster.py, unless it is a necessary for the Client to send and receive data
+to the game server.
+
+Honor Code: This work is mine unless otherwise cited. I have used several
+Keras tutorials to understand how to successfully predict an image from the
+MNIST data set. I also referenced multiple StackOverflow answers to fix bugs in
+the code as they arose.
+
+Relevant links to articles/answers used:
+
+A tutorial for training and predicting on the MNIST data set with Keras,
+written by author Ashok Tankala. Heavily modified Ashok's predict function,
+using it more as a reference guide to supplement Keras documentation. Special
+thanks to Ashok for the detailed tutorial:
+https://medium.com/coinmonks/handwritten-digit-prediction-using-convolutional-neural-networks-in-tensorflow-with-keras-and-live-5ebddf46dc8
+
+An answer on StackOverflow that helped me figure out how to invert an image
+using the Pillow fork of PIL and ImageOps. Similarly to other articles or
+answers referenced, this answer was used to supplement the PIL documentation.
+Special thanks to user Gary Kerr:
+https://stackoverflow.com/questions/2498875/how-to-invert-colors-of-image-with-pil-python-imaging
+
+An answer on StackOverflow that helped me understand how reading images as
+strings worked in conjunction with both pygame and the Pillow fork of PIL,
+to allow for the conversion of a pygame canvas into a PIL Image object. Special
+thanks to user Caronte Consulting:
+https://stackoverflow.com/questions/35463717/convert-image-from-pygame-to-pil-image
+
+An answer on StackOverflow that directly taught me how to resize an image in
+PIL. Originally, my resizing did not maintain the aspect ratio, and thus made
+the predictions incorrect. Special thanks here to user tomvon:
+https://stackoverflow.com/questions/273946/how-do-i-resize-an-image-using-pil-and-maintain-its-aspect-ratio
+"""
 import pygame as pg
 import numpy as np
 import PIL.ImageOps
