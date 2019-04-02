@@ -25,9 +25,9 @@ GREEN = pg.Color(0, 255, 0)
 TRUEBLUE = pg.Color(0, 0, 255)
 
 # Important paths
-ROOT_DIR = os.path.dirname(__file__) # Root Directory
-STATIC_DIR = os.path.join(ROOT_DIR, "src/static") # Static Directory
-USR_DIR = os.path.join(ROOT_DIR, "src/usr") # User Directory
+ROOT_DIR = os.path.dirname(__file__)  # Root Directory
+STATIC_DIR = os.path.join(ROOT_DIR, "src/static")  # Static Directory
+USR_DIR = os.path.join(ROOT_DIR, "src/usr")  # User Directory
 
 # Specific paths:
 MUSIC_DIR = os.path.join(STATIC_DIR, "audio/music")
@@ -36,9 +36,9 @@ FONT_DIR = os.path.join(STATIC_DIR, "font")
 IMG_DIR = os.path.join(STATIC_DIR, "img")
 
 # Game Settings
-TITLE = "Caster 2D" # Window title
-FPS = 30 # 30, 45, or 60
-ICON = os.path.join(IMG_DIR, "logo_128.png") # Window Icon
+TITLE = "Caster 2D"  # Window title
+FPS = 30  # 30, 45, or 60
+ICON = os.path.join(IMG_DIR, "logo_128.png")  # Window Icon
 # Potentially deprecated, game default is fullscreen.
 WIDTH = 800
 HEIGHT = 600

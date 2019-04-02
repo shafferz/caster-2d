@@ -7,17 +7,18 @@ import random
 from keras.models import load_model
 from PIL import Image
 
+
 class GameTools:
     # Roundline calculates distance between ending points as the lines are being
     # drawn, removing staggered pixels in the drawing
     def roundline(srf, color, start, end, radius=5):
-            dx = end[0]-start[0]
-            dy = end[1]-start[1]
-            distance = max(abs(dx), abs(dy))
-            for i in range(distance):
-                x = int( start[0]+float(i)/distance*dx)
-                y = int( start[1]+float(i)/distance*dy)
-                pg.draw.circle(srf, color, (x, y), radius)
+        dx = end[0] - start[0]
+        dy = end[1] - start[1]
+        distance = max(abs(dx), abs(dy))
+        for i in range(distance):
+            x = int(start[0] + float(i) / distance * dx)
+            y = int(start[1] + float(i) / distance * dy)
+            pg.draw.circle(srf, color, (x, y), radius)
 
     # Use model created by train_model.py to predict given drawings'
     # classifications (in this case, the glyphs of the spells) as indices of a
@@ -29,20 +30,21 @@ class GameTools:
         # First, format the image in a bitstring for pillow
         pil_string = pg.image.tostring(srf, "RGB", False)
         # Create the PIL Image object from the RGBA bitstring above
-        drawing = Image.frombytes("RGB", (400,400), pil_string)
+        drawing = Image.frombytes("RGB", (400, 400), pil_string)
         # Invert the drawing, since the MNIST data set is white images on black
         drawing = PIL.ImageOps.invert(drawing)
         # Resize the Image to 28x28 from 400x400, removing alpha/RGB channels
-        wpercent = (28/float(drawing.size[0]))
-        hsize = int((float(drawing.size[1])*float(wpercent)))
+        wpercent = 28 / float(drawing.size[0])
+        hsize = int((float(drawing.size[1]) * float(wpercent)))
         drawing = drawing.resize((28, hsize), Image.ANTIALIAS).convert("L")
         # DEBUG: drawing.show()
         # Convert the drawing to a numpy array for the model, with shape
         # (1,28,28,1)
-        drawing_arr = np.array(drawing).reshape(1,28,28,1)
+        drawing_arr = np.array(drawing).reshape(1, 28, 28, 1)
         # Make the prediction on the loaded model
         predictions = model.predict(drawing_arr, batch_size=2048)
-        return(np.argmax(predictions[0]))
+        return np.argmax(predictions[0])
+
 
 # Object that houses a set of tools for and represents the creation of a spell.
 class SpellCrafter(object):
@@ -57,7 +59,7 @@ class SpellCrafter(object):
             6: "earth",
             7: "lightning",
             8: "frost",
-            9: "fire"
+            9: "fire",
         }
         # The list of glyphs by name
         self.spell_glyphs = []
@@ -80,7 +82,7 @@ class SpellCrafter(object):
         # A key-number pair for the glyp_dict indicating the spell's dominant
         # element, determined by having a majority of that element in the
         # spell's glyphs, and the number of those elements in the spell
-        self.dominant_element = (0,0)
+        self.dominant_element = (0, 0)
 
     # Add glyphs to spell as they are drawn and predicted
     def add_glyph(self, glyph_key):
@@ -98,7 +100,7 @@ class SpellCrafter(object):
         if self.elements >= 4 and glyph_key >= 5:
             # if needed in case of misread glyph
             if self.spell_glyphs:
-                self.spell_glyphs.pop((len(self.spell_glyphs)-1))
+                self.spell_glyphs.pop((len(self.spell_glyphs) - 1))
                 self.elements -= 1
                 self.cost -= 1
         # Count the number of casting or elemental glyphs in the spell as added.
@@ -162,7 +164,7 @@ class SpellCrafter(object):
         # If the spell has glyphs...
         if self.spell_glyphs:
             # And the first of those glyphs is a casting glyph...
-            for _x in range(0,5):
+            for _x in range(0, 5):
                 if self.spell_glyphs[0] == self.glyph_dict[_x]:
                     # Return true
                     return True
@@ -203,7 +205,7 @@ class SpellCrafter(object):
             # glyph_dict of the dominant element is the index of the highest
             # counter in ctr_list + 5. The number itself is just the max in
             # the list
-            dominant_key = ctr_list.index(max(ctr_list))+5
+            dominant_key = ctr_list.index(max(ctr_list)) + 5
             dominant_num = ctr_list[ctr_list.index(max(ctr_list))]
             self.dominant_element = (dominant_key, dominant_num)
 
@@ -229,7 +231,7 @@ class SpellCrafter(object):
             # The buff indices are 0-4, the dominant element key is 5-9,
             # so the applied buff's index applied to the spell is the dominant
             # element key - 5. This holds for the buff_timer also
-            dominant_index = (self.dominant_element[0]-5)
+            dominant_index = self.dominant_element[0] - 5
             buff = self.buff[dominant_index]
             buff_timer = self.buff_timer[dominant_index]
             # The same holds true for the debuff
@@ -246,7 +248,7 @@ class SpellCrafter(object):
             # Increase the total modifier by 1 + (# of dom. element glyps)-1/3
             # Which, for each of 1, 2, 3, and 4 dominant element glyphs is
             # 1, 1.33, 1.66, and 2 respectively
-            total_modifier += 1+((self.dominant_element[1]-1)/3)
+            total_modifier += 1 + ((self.dominant_element[1] - 1) / 3)
             self.strength *= total_modifier
         elif self.spell_glyphs[0] == "shield":
             # If the casting glyph is a shield, it will not be a buff, will
@@ -258,7 +260,7 @@ class SpellCrafter(object):
             # The buff indices are 0-4, the dominant element key is 5-9,
             # so the applied buff's index applied to the spell is the dominant
             # element key - 5. This holds for the buff_timer also
-            dominant_index = (self.dominant_element[0]-5)
+            dominant_index = self.dominant_element[0] - 5
             buff = self.buff[dominant_index]
             buff_timer = self.buff_timer[dominant_index]
             # The same holds true for the debuff
@@ -272,7 +274,7 @@ class SpellCrafter(object):
             if debuff_timer > 0:
                 total_modifier -= debuff
                 self.debuff_timer[dominant_index] -= 1
-            total_modifier += 1+((self.dominant_element[1]-1)/3)
+            total_modifier += 1 + ((self.dominant_element[1] - 1) / 3)
             self.strength *= total_modifier
         elif self.spell_glyphs[0] == "curse":
             # If the casting glyph is a curse, it will be a (de)buff that
@@ -284,7 +286,7 @@ class SpellCrafter(object):
             # Strength of a curse is 1/4th of the number of the dominant element
             # glyphs in the spell. So 0.25 for 1, 0.5 for 2, and so on.
             # Curses and blessings are unaffected by buffs or debuffs.
-            self.strength = ((self.dominant_element[1])/4)
+            self.strength = (self.dominant_element[1]) / 4
         elif self.spell_glyphs[0] == "blessing":
             # If the casting glyph is a blessing, it will be a buff that
             # targets the caster, and the strength is the modifier of the buff
@@ -295,7 +297,7 @@ class SpellCrafter(object):
             # Strength of a blessing is comparable to a curse (# of elemental
             # glyphs in the spell). So 0.25 for 1, 0.5 for 2, and so on.
             # Curses and blessings are unaffected by buffs or debuffs.
-            self.strength = ((self.dominant_element[1])/4)
+            self.strength = (self.dominant_element[1]) / 4
 
     # A simple method for restoring the base values, except for buffs/debuffs,
     # so that the next spell is unaffected by previously cast ones
@@ -312,7 +314,7 @@ class SpellCrafter(object):
         self.on_self = False
         self.is_buff = False
         # The dominant element tuple returns to (0,0)
-        self.dominant_element = (0,0)
+        self.dominant_element = (0, 0)
 
     # Returns a string with the Spell's title, in the form of:
     # (Superlative) Adjective Element Type
@@ -340,8 +342,8 @@ class SpellCrafter(object):
         type = self.spell_glyphs[0]
         type = type.capitalize()
         # Put spaces between the words in the title and return it
-        title = (superlative + " " + adjective + " " + element + " " + type)
-        return(title.lstrip(" "))
+        title = superlative + " " + adjective + " " + element + " " + type
+        return title.lstrip(" ")
 
     # Generates a random spell of given mana cost, designed to be used by a
     # computer. Always uses one element
@@ -351,10 +353,11 @@ class SpellCrafter(object):
         # Choose an element key at random
         element_key = random.randint(5, 9)
         # Add elements up to the remaining about of mana allowance
-        for x in range(0, mana-1):
+        for x in range(0, mana - 1):
             self.add_glyph(element_key)
         # Randomly add a type of spell
-        self.add_glyph(random.randint(0,4))
+        self.add_glyph(random.randint(0, 4))
+
 
 # A simple Player object that will be used to maintain hitpoint and mana values
 class Player(object):

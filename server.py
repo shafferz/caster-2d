@@ -3,10 +3,11 @@ import PodSixNet.Server
 
 from time import sleep
 
-class ClientChannel(PodSixNet.Channel.Channel):
 
+class ClientChannel(PodSixNet.Channel.Channel):
     def Network(self, data):
         print(data)
+
 
 class CasterServer(PodSixNet.Server.Server):
 
@@ -14,6 +15,7 @@ class CasterServer(PodSixNet.Server.Server):
 
     def Connected(self, channel, addr):
         print("New connection: ", channel)
+
 
 print("Server starting...")
 server = CasterServer()
