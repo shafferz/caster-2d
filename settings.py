@@ -2,7 +2,7 @@
 Author: Zachary Shaffer
 GitHub: @shafferz
 
-This is the settings module for caster.py. Important global variables and other
+This is the settings module for caster.py. Important global constants and other
 information used in caster.py will be found here.
 
 Inspired by work done by Tyler Lyle, friend and Pygame consultant. See their

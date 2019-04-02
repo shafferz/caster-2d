@@ -21,7 +21,7 @@ class Core(object):
     def __init__(self):
         pg.init()
         # Display game in fullscreen
-        self.screen = pg.display.set_mode((WIDTH, HEIGHT))
+        self.screen = pg.display.set_mode((WIDTH, HEIGHT), pg.FULLSCREEN)
         # Boolean used to toggle fullscreen mode
         self.is_fullscreen = False
         # Set game caption and game icon
@@ -290,24 +290,23 @@ class Core(object):
                             self.player_turn = False
                         else:
                             self.player_turn = True
+                    # If the player's hitpoints are reduced to 0, kill player
+                    # and go to Game Over screen
                     if self.player.hitpoints <= 0:
                         self.game_state = 2
+                        self.alive = False
+                    # If the enemy's hitpoints are reduced to 0, give player a
+                    # win and go to Game Over screen
                     if self.enemy.hitpoints <= 0:
                         self.game_state = 2
+                        self.won = True
+        # Handling pressing the F key, used to toggle Fullscreen mode
         elif event.type == pg.KEYDOWN and event.key == pg.K_f:
             if self.is_fullscreen:
                 self.screen = pg.display.set_mode((WIDTH, HEIGHT))
             else:
                 self.screen = pg.display.set_mode((WIDTH, HEIGHT), pg.FULLSCREEN)
             self.is_fullscreen = not self.is_fullscreen
-        elif event.type == pg.KEYDOWN and event.key == pg.K_x:
-            self.game_state = 2
-            self.alive = False
-            self.won = False
-        elif event.type == pg.KEYDOWN and event.key == pg.K_w:
-            self.game_state = 2
-            self.won = True
-            self.alive = True
 
     def calculate_result(self):
         self.spell_crafter.craft_spell()
@@ -381,8 +380,9 @@ class Core(object):
             # If the shield reduces damage below 0, change damage to 0
             if damage < 0:
                 damage = 0
-            # Apply the damage, if any
-            self.enemy.hit(damage)
+            # Increase damage proportional to number of elemental glyphs of the
+            # dominant type, and submit
+            self.enemy.hit(damage*(1+self.spell_crafter.dominant_element[1]/4))
         if not self.opponent_bot.is_buff and not self.opponent_bot.on_self:
             # Increase p2 damage 50% if p1 has advantage
             if p2_has_adv:
@@ -397,9 +397,12 @@ class Core(object):
             # If the shield reduces damage below 0, change damage to 0
             if damage < 0:
                 damage = 0
-            # Apply the damage, if any
-            self.player.hit(damage)
+            # Increase damage proportional to number of elemental glyphs of the
+            # dominant type, and submit
+            self.player.hit(damage*(1+self.spell_crafter.dominant_element[1]/4))
+        # Restore player's spell_crafter object to base values (except de/buffs)
         self.spell_crafter.restore_base_values()
+        # Generate the opponent's next spell in advance
         self.opponent_bot.random_cast(min(self.enemy.max_mana, 4))
 
     def render_overlay(self):

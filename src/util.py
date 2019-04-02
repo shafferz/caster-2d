@@ -8,6 +8,8 @@ from keras.models import load_model
 from PIL import Image
 
 class GameTools:
+    # Roundline calculates distance between ending points as the lines are being
+    # drawn, removing staggered pixels in the drawing
     def roundline(srf, color, start, end, radius=5):
             dx = end[0]-start[0]
             dy = end[1]-start[1]
@@ -17,6 +19,10 @@ class GameTools:
                 y = int( start[1]+float(i)/distance*dy)
                 pg.draw.circle(srf, color, (x, y), radius)
 
+    # Use model created by train_model.py to predict given drawings'
+    # classifications (in this case, the glyphs of the spells) as indices of a
+    # list whose elements correspond to probabilities of seeing a hand-drawn
+    # digit that is the same as the index of the probability.
     def predict(srf):
         # Load the model that was already pre-trained
         model = load_model("src/static/file/mnistModel.h5")
@@ -35,9 +41,10 @@ class GameTools:
         # (1,28,28,1)
         drawing_arr = np.array(drawing).reshape(1,28,28,1)
         # Make the prediction on the loaded model
-        predictions = model.predict(drawing_arr, batch_size=1)
+        predictions = model.predict(drawing_arr, batch_size=2048)
         return(np.argmax(predictions[0]))
 
+# Object that houses a set of tools for and represents the creation of a spell.
 class SpellCrafter(object):
     def __init__(self):
         self.glyph_dict = {
@@ -75,12 +82,13 @@ class SpellCrafter(object):
         # spell's glyphs, and the number of those elements in the spell
         self.dominant_element = (0,0)
 
-    # Add glyphs to spell as cast, return True when successful
+    # Add glyphs to spell as they are drawn and predicted
     def add_glyph(self, glyph_key):
-        # If there is already a component in the spell, remove previous. should
-        # be first in list. Also decrease cost proportionally
+        # If there is already a casting glyph in the spell, remove previous.
+        # Should be first in list. Also, decrease cost proportionally.
         if self.components > 0 and glyph_key < 5:
-            # if needed in case of misread glyph
+            # If needed in case of misread glyph causing first glyph to be a
+            # non-casting glyph.
             if self.spell_glyphs:
                 self.spell_glyphs.pop(0)
                 self.components -= 1
@@ -93,7 +101,7 @@ class SpellCrafter(object):
                 self.spell_glyphs.pop((len(self.spell_glyphs)-1))
                 self.elements -= 1
                 self.cost -= 1
-        # Count the number of component or element glyphs in the spell as added
+        # Count the number of casting or elemental glyphs in the spell as added.
         if glyph_key < 5:
             self.components += 1
         else:
@@ -103,7 +111,7 @@ class SpellCrafter(object):
         self.cost += 1
         self.sort_glyphs()
 
-    # Sort lists in the format Mana Glyph - Component Glyph - Element Glyph
+    # Sort lists in the format: [Casting Glyphs] ... [Element Glyphs] ...
     def sort_glyphs(self):
         sorted_list = []
         # First, find any mana glyphs and add them to the sorted list
@@ -132,11 +140,11 @@ class SpellCrafter(object):
         else:
             return False
 
-    # Remove the last glyph in the spell and
-    # recalculate number of element/casting glyphs
+    # Remove the last glyph in the spell and recalculate number of
+    # element/casting glyphs
     def remove_last_glyph(self):
         # Find the removed element's index, so we can decrease elements or
-        # components appropriately
+        # casting glyphs appropriately
         removed_element = self.spell_glyphs.pop()
         for key, value in self.glyph_dict.items():
             if removed_element == value:
@@ -146,10 +154,10 @@ class SpellCrafter(object):
         else:
             self.elements -= 1
         self.cost -= 1
-        # Like pop, returns the list element removed
+        # Like pop, returns the list element removed, in case desired.
         return removed_element
 
-    # Returns true if and only if spell has a casting glyph (component)
+    # Returns true if and only if spell has a casting glyph
     def has_casting(self):
         # If the spell has glyphs...
         if self.spell_glyphs:
@@ -199,7 +207,7 @@ class SpellCrafter(object):
             dominant_num = ctr_list[ctr_list.index(max(ctr_list))]
             self.dominant_element = (dominant_key, dominant_num)
 
-    # converts spell into targets and strengths and so on
+    # Converts spell into targets and strengths and so on
     def craft_spell(self):
         # First, determine the spell's dominant element for calculations
         self.find_dominant()
