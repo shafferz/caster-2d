@@ -22,12 +22,25 @@ from src.util import *
 
 
 class Core(object):
-    def __init__(self):
+    def __init__(self, user, fs_set, tut_set):
         pg.init()
-        # Display game in fullscreen
-        self.screen = pg.display.set_mode((WIDTH, HEIGHT), pg.FULLSCREEN)
+        # Set username for game instance
+        self.username = user
         # Boolean used to toggle fullscreen mode
-        self.is_fullscreen = False
+        if(fs_set == 1):
+            self.is_fullscreen = True
+        else:
+            self.is_fullscreen = False
+        # Display game
+        if(self.is_fullscreen):
+            self.screen = pg.display.set_mode((WIDTH, HEIGHT), pg.FULLSCREEN)
+        else:
+            self.screen = pg.display.set_mode((WIDTH, HEIGHT))
+        # Boolean used to toggle display tutorial
+        if(tut_set == 0):
+            self.tutorialized = False
+        else:
+            self.tutorialized = True
         # Set game caption and game icon
         pg.display.set_caption(TITLE)
         pg.display.set_icon(pg.image.load(ICON))
@@ -67,7 +80,6 @@ class Core(object):
         self.enemy = Player()
         self.spell_crafter = SpellCrafter()
         self.opponent_bot = SpellCrafter()
-        self.tutorialized = False
         self.card_list = [
             pg.image.load("src/static/img/tutorial_card1.png"),
             pg.image.load("src/static/img/tutorial_card2.png"),
@@ -87,6 +99,14 @@ class Core(object):
         # If the game is quit via closing
         if event.type == pg.QUIT:
             pg.quit()
+            if (self.is_fullscreen):
+                set_user_fs_setting(self.username, 1)
+            else:
+                set_user_fs_setting(self.username, 0)
+            if (self.tutorialized):
+                set_user_tut_setting(self.username, 1)
+            else:
+                set_user_tut_setting(self.username, 0)
             sys.exit()
         # Handling pressing escape
         elif event.type == pg.KEYDOWN and event.key == pg.K_ESCAPE:
@@ -95,6 +115,14 @@ class Core(object):
                 # If the substate is 0, meaning base of main menu, exit game
                 if self.game_substate == 0:
                     pg.quit()
+                    if (self.is_fullscreen):
+                        set_user_fs_setting(self.username, 1)
+                    else:
+                        set_user_fs_setting(self.username, 0)
+                    if (self.tutorialized):
+                        set_user_tut_setting(self.username, 1)
+                    else:
+                        set_user_tut_setting(self.username, 0)
                     sys.exit()
                 # If in any of the submenus of the main menu, return to base
                 else:
@@ -708,8 +736,3 @@ class Core(object):
                     self.render_game_over()
                     self.render_overlay()
             pg.display.flip()
-
-
-if __name__ == "__main__":
-    main = Core()
-    main.run()

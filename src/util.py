@@ -63,6 +63,7 @@ import numpy as np
 import PIL.ImageOps
 import math
 import random
+import sqlite3
 
 from keras.models import load_model
 from PIL import Image
@@ -440,3 +441,21 @@ class Player(object):
     def eot(self):
         self.max_mana += 1
         self.mana = self.max_mana
+
+def set_user_fs_setting(username, value):
+    print("Setting fullscreen setting...")
+    connection = sqlite3.connect('src/usr/userbase.sqlite3')
+    with connection:
+        cursor = connection.cursor()
+        cursor.execute("UPDATE users SET fullscreen = ? WHERE username == ?", (value, username))
+        connection.commit()
+    connection.close()
+
+def set_user_tut_setting(username, value):
+    print("Setting tutorialized setting...")
+    connection = sqlite3.connect('src/usr/userbase.sqlite3')
+    with connection:
+        cursor = connection.cursor()
+        cursor.execute("UPDATE users SET tutorialized = ? WHERE username == ?", (value, username))
+        connection.commit()
+    connection.close()
