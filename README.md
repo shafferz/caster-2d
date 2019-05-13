@@ -16,8 +16,8 @@ Installation requirements to come.
 ## Running
 
 To run the game, enter the following command:
-'''
+```
 python3 game.py
-'''
+```
 Into your terminal or command-prompt. Follow the on-screen
 login instructions until the GUI opens on screen.
